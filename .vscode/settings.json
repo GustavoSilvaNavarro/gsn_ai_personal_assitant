@@ -2,7 +2,9 @@
   "cSpell.words": [
     "celerybeat",
     "dmypy",
+    "dotenv",
     "htmlcov",
+    "httpx",
     "ipynb",
     "ipython",
     "mkdocs",
