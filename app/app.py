@@ -27,26 +27,21 @@ async def create_new_pages_in_notion(payload: dict[str, Any]):
         return resp.json()
 
 
-async def create_new_page(title: str):
+async def create_new_page(title: str, paragraphs: list[str]):
+    paragraphs_children = [
+        {
+            "object": "block",
+            "type": "paragraph",
+            "paragraph": {"rich_text": [{"text": {"content": text}}]},
+        }
+        for text in paragraphs
+    ]
+
     payload = {
         "parent": {"page_id": NOTION_PARENT_PAGE_ID},
         "icon": {"type": "emoji", "emoji": "🥳"},
-        "properties": {"title": [{"text": {"content": title }}]},
-        "children": [
-            {
-                "object": "block",
-                "type": "paragraph",
-                "paragraph": {
-                    "rich_text": [
-                        {
-                            "text": {
-                                "content": "This is a paragraph inside the new page."
-                            }
-                        }
-                    ]
-                },
-            }
-        ],
+        "properties": {"title": [{"text": {"content": title}}]},
+        "children": paragraphs_children,
     }
 
     page = await create_new_pages_in_notion(payload=payload)
@@ -54,4 +49,5 @@ async def create_new_page(title: str):
 
 
 if __name__ == "__main__":
-    asyncio.run(create_new_page())
+    paragraphs = ["First paragraph", "Second paragraph"]
+    asyncio.run(create_new_page(title="Test page", paragraphs=paragraphs))
