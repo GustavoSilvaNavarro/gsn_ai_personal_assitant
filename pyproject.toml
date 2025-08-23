@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "notast"
+version = "0.1.0"
+description = "An AI assistant to put your ideas into Notion."
+readme = "README.md"
+requires-python = ">=3.8"
+authors = [
+  { name = "Gustavo Silva", email = "gsnavarro2@gmail.com" }
+]
+dependencies = [
+  "typer==0.16.1",
+  "httpx==0.28.1",
+  "python-dotenv==1.1.1",
+  "typing-extensions==4.14.1"
+]
+
+[project.scripts]
+notast = "app.app:app"

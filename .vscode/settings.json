@@ -10,6 +10,7 @@
     "mkdocs",
     "mypy",
     "nosetests",
+    "notast",
     "Pipfile",
     "pycache",
     "pyenv",
@@ -19,9 +20,11 @@
     "ropeproject",
     "scrapy",
     "sdist",
+    "setuptools",
     "Spyder",
     "spyderproject",
     "spyproject",
+    "typer",
     "venv",
     "webassets"
   ]
