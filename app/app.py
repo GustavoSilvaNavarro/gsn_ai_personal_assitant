@@ -66,6 +66,7 @@ def cli_add_new_page(
         str,
         typer.Option(
             ...,
+            "-t",
             prompt="Enter page title",
             help="The title of the new Notion page.",
         ),
@@ -74,6 +75,7 @@ def cli_add_new_page(
         List[str],
         typer.Option(
             ...,
+            "-p",
             "--paragraph",
             help="Paragraphs for the page content.",
         ),
