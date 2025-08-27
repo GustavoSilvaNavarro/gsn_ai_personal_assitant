@@ -3,9 +3,10 @@ import wave
 import sys
 import time
 import numpy as np
+from io import BytesIO
 from .mac_input_listener import InputListener
+from .eleven_labs import ElevenLabsManager
 
-# TODO: Big todo figure out if the audio is being saved nicely
 
 def record_new_audio(duration_limit=5, fs=44100, channels=1):
     """
@@ -83,7 +84,10 @@ def play_audio_bytes(audio_bytes: bytes, fs=44100):
 
 
 if __name__ == "__main__":
+    elevenlabs = ElevenLabsManager()
     new_audio = record_new_audio(duration_limit=10)
 
     if new_audio:
-        play_audio_bytes(audio_bytes=new_audio)
+        text = elevenlabs.convert_speech_to_text(audio=new_audio)
+        print('The Result of my text ====> ', text)
+

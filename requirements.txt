@@ -4,3 +4,6 @@ typer==0.16.1
 typing-extensions==4.14.1
 sounddevice==0.5.2
 numpy==2.3.2
+elevenlabs==2.12.1
+pydantic-settings==2.10.1
+pydantic==2.11.7
