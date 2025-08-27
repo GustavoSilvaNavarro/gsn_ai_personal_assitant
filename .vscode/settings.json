@@ -21,6 +21,7 @@
     "scrapy",
     "sdist",
     "setuptools",
+    "sounddevice",
     "Spyder",
     "spyderproject",
     "spyproject",
