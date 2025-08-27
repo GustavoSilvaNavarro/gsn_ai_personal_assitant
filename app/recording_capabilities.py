@@ -8,7 +8,7 @@ from .input_listeners import InputListener
 
 # TODO: Big todo figure out if the audio is being saved nicely
 
-def record_until_keypress(hard_limit=10, fs=44100, channels=1):
+def record_until_keypress(hard_limit=10, fs=44100, channels=1, input_device_id=0):
     """
     Records audio until a key is pressed or a hard time limit is reached.
     """
@@ -19,13 +19,13 @@ def record_until_keypress(hard_limit=10, fs=44100, channels=1):
 
     frames = []
 
-    def callback(indata, frame_count, time_info, status):
+    def callback(indata, frame_count, time_info, status, ):
         """This is called (from a separate thread) for each audio block."""
         if status:
             print(status, file=sys.stderr)
         frames.append(indata.copy())
 
-    with sd.InputStream(samplerate=fs, channels=channels, callback=callback):
+    with sd.InputStream(samplerate=fs, channels=channels, callback=callback, device=input_device_id):
         start_time = time.time()
         while not listener.is_key_pressed():
             if time.time() - start_time > hard_limit:
@@ -48,44 +48,77 @@ def record_until_keypress(hard_limit=10, fs=44100, channels=1):
     print("Recording stopped.")
     return buffer
 
-def play_from_memory(audio_buffer):
+
+def record_audio(duration_limit=5, fs = 44100, channels = 1):
     """
-    Plays audio from a BytesIO buffer.
+    Records audio for a specified duration and returns the raw audio bytes.
+
+    Args:
+        duration_limit (int): Hard duration limit to stop an audio recording.
+        fs (int): The sample rate of the audio data.
+        channels (int): MacBook Pro Microphone is mono.
     """
-    print("Playing back recorded audio...")
-    try:
-        # Open the in-memory buffer as a wave file
-        with wave.open(audio_buffer, 'rb') as wf:
-            n_channels = wf.getnchannels()
-            sample_width = wf.getsampwidth()
-            frame_rate = wf.getframerate()
-            n_frames = wf.getnframes()
+    print(f"Recording for {duration_limit} seconds...")
+    recording = sd.rec(int(duration_limit * fs), samplerate=fs, channels=channels)
+    sd.wait()
+    print("Recording finished.")
 
-            # Read all audio frames
-            audio_data_bytes = wf.readframes(n_frames)
+    # Convert the numpy array (float32) to an int16 array
+    recording_int16 = (recording * 32767).astype(np.int16)
 
-            # Convert bytes to a numpy array
-            dtype_map = {1: np.int8, 2: np.int16, 3: np.int32, 4: np.int32}
-            audio_data = np.frombuffer(audio_data_bytes, dtype=dtype_map.get(sample_width))
+    # Return the raw bytes
+    return recording_int16.tobytes()
 
-            # Reshape for multi-channel audio
-            if n_channels > 1:
-                audio_data = audio_data.reshape(-1, n_channels)
 
-            # Play the audio using sounddevice
-            sd.play(audio_data, frame_rate)
-            sd.wait()  # Wait for playback to finish
-            print("Playback finished.")
-    except (wave.Error, Exception) as err:
-        print(f"Error reading audio data from buffer: {err}")
+def save_audio_to_file(audio_bytes: bytes, filename="recording.wav", fs = 44100, channels = 1):
+    """
+    Saves raw audio bytes to a WAV file.
+    """
+    fs = 44100
+    channels = 1
+
+    print(f"Saving to {filename}...")
+
+    with wave.open(filename, "wb") as wf:
+        wf.setnchannels(channels)
+        wf.setsampwidth(2) # 16-bit audio
+        wf.setframerate(fs)
+        wf.writeframes(audio_bytes)
+
+    print("File saved successfully.")
+
+
+def play_audio_bytes(audio_bytes: bytes, fs=44100):
+    """
+    Plays back raw audio bytes.
+
+    Args:
+        audio_bytes (bytes): The raw audio data as a bytes object.
+        fs (int): The sample rate of the audio data.
+    """
+    print("Replaying audio...")
+    # Convert the bytes object back into a NumPy array of int16
+    playback_array = np.frombuffer(audio_bytes, dtype=np.int16)
+
+    # Play the NumPy array
+    sd.play(playback_array, samplerate=fs)
+
+    # Wait for playback to finish
+    sd.wait()
+    print("Playback finished.")
 
 
 if __name__ == "__main__":
-    audio_buffer = record_until_keypress(hard_limit=10)
+    print(sd.query_devices())
+    audio = record_audio()
+    play_audio_bytes(audio_bytes=audio)
 
-    if audio_buffer:
-        print(f"Successfully recorded {audio_buffer.getbuffer().nbytes} bytes of audio.")
-        # Now, play the audio back
-        play_from_memory(audio_buffer)
-    else:
-        print("No audio was recorded.")
+    # if audio_buffer:
+    #     save_buffer_to_file(audio_buffer)
+    #     print(f"Successfully recorded {audio_buffer.getbuffer().nbytes} bytes of audio.")
+    #     # Now, play the audio back
+    #     # play_from_memory(audio_buffer)
+    # else:
+    #     print("No audio was recorded.")
+
+
