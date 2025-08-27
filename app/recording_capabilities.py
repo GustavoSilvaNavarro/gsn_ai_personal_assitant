@@ -1,48 +1,91 @@
 import sounddevice as sd
 import wave
-import io
-import requests
+from io import BytesIO
+import sys
+import time
+import numpy as np
+from .input_listeners import InputListener
 
-def record_to_memory(duration=10, fs=44100, channels=1):
-    """
-    Record audio and return it as a BytesIO object (WAV format).
-    """
-    print(f"Recording for {duration} seconds...")
-    recording = sd.rec(int(duration * fs), samplerate=fs, channels=channels, dtype='int16')
-    sd.wait()
-    print("Done recording.")
+# TODO: Big todo figure out if the audio is being saved nicely
 
-    # Save to BytesIO as WAV
-    buffer = io.BytesIO()
+def record_until_keypress(hard_limit=10, fs=44100, channels=1):
+    """
+    Records audio until a key is pressed or a hard time limit is reached.
+    """
+    print(f"Recording started. Press any key to stop. Hard limit: {hard_limit}s")
+
+    listener = InputListener()
+    listener.start()
+
+    frames = []
+
+    def callback(indata, frame_count, time_info, status):
+        """This is called (from a separate thread) for each audio block."""
+        if status:
+            print(status, file=sys.stderr)
+        frames.append(indata.copy())
+
+    with sd.InputStream(samplerate=fs, channels=channels, callback=callback):
+        start_time = time.time()
+        while not listener.is_key_pressed():
+            if time.time() - start_time > hard_limit:
+                print("\nHard limit reached. Stopping recording.")
+                break
+            time.sleep(0.01) # Small delay to prevent busy-waiting
+
+    # Concatenate all recorded frames into a single NumPy array
+    recording = np.concatenate(frames, axis=0)
+
+    # Save the NumPy array to an in-memory BytesIO buffer as a WAV file
+    buffer = BytesIO()
     with wave.open(buffer, "wb") as f:
         f.setnchannels(channels)
-        f.setsampwidth(2)  # 16-bit audio
+        f.setsampwidth(2)
         f.setframerate(fs)
         f.writeframes(recording.tobytes())
 
-    buffer.seek(0)  # reset pointer to beginning
+    buffer.seek(0)
+    print("Recording stopped.")
     return buffer
 
+def play_from_memory(audio_buffer):
+    """
+    Plays audio from a BytesIO buffer.
+    """
+    print("Playing back recorded audio...")
+    try:
+        # Open the in-memory buffer as a wave file
+        with wave.open(audio_buffer, 'rb') as wf:
+            n_channels = wf.getnchannels()
+            sample_width = wf.getsampwidth()
+            frame_rate = wf.getframerate()
+            n_frames = wf.getnframes()
 
-def transcribe_audio(buffer, api_key):
-    """
-    Send in-memory audio buffer to ElevenLabs transcription API.
-    """
-    url = "https://api.elevenlabs.io/v1/speech-to-text"
-    headers = {
-        "Accept": "application/json",
-        "xi-api-key": api_key
-    }
-    files = {"file": ("recording.wav", buffer, "audio/wav")}
-    response = requests.post(url, headers=headers, files=files)
-    return response.json()
+            # Read all audio frames
+            audio_data_bytes = wf.readframes(n_frames)
+
+            # Convert bytes to a numpy array
+            dtype_map = {1: np.int8, 2: np.int16, 3: np.int32, 4: np.int32}
+            audio_data = np.frombuffer(audio_data_bytes, dtype=dtype_map.get(sample_width))
+
+            # Reshape for multi-channel audio
+            if n_channels > 1:
+                audio_data = audio_data.reshape(-1, n_channels)
+
+            # Play the audio using sounddevice
+            sd.play(audio_data, frame_rate)
+            sd.wait()  # Wait for playback to finish
+            print("Playback finished.")
+    except (wave.Error, Exception) as err:
+        print(f"Error reading audio data from buffer: {err}")
 
 
 if __name__ == "__main__":
-    API_KEY = "YOUR_API_KEY"
+    audio_buffer = record_until_keypress(hard_limit=10)
 
-    # record up to 5 minutes max
-    audio_buffer = record_to_memory(duration=30)  # try 30s for test
-
-    result = transcribe_audio(audio_buffer, API_KEY)
-    print("Transcription:", result)
+    if audio_buffer:
+        print(f"Successfully recorded {audio_buffer.getbuffer().nbytes} bytes of audio.")
+        # Now, play the audio back
+        play_from_memory(audio_buffer)
+    else:
+        print("No audio was recorded.")
