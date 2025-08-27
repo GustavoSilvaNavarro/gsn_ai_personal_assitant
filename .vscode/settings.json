@@ -2,12 +2,15 @@
   "cSpell.words": [
     "celerybeat",
     "dmypy",
+    "dotenv",
     "htmlcov",
+    "httpx",
     "ipynb",
     "ipython",
     "mkdocs",
     "mypy",
     "nosetests",
+    "notast",
     "Pipfile",
     "pycache",
     "pyenv",
@@ -17,9 +20,11 @@
     "ropeproject",
     "scrapy",
     "sdist",
+    "setuptools",
     "Spyder",
     "spyderproject",
     "spyproject",
+    "typer",
     "venv",
     "webassets"
   ]
