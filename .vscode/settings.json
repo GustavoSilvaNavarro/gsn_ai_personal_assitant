@@ -13,6 +13,8 @@
     "ipynb",
     "ipython",
     "kbhit",
+    "langgraph",
+    "langsmith",
     "mkdocs",
     "mypy",
     "nbytes",
