@@ -9,3 +9,4 @@ pydantic-settings==2.10.1
 pydantic==2.11.7
 langgraph==0.6.6
 langsmith==0.4.20
+langchain-google-genai==2.1.10
