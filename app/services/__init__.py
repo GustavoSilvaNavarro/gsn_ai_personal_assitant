@@ -1,4 +1,3 @@
-# from .eleven_labs import ElevenLabsManager
+from .recording_capabilities import transformation_audio_to_text
 
-# __all__ = ["ElevenLabsManager"]
-
+__all__ = ["transformation_audio_to_text"]

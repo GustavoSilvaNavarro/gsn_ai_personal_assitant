@@ -4,6 +4,7 @@ import sys
 import time
 import numpy as np
 from io import BytesIO
+from typing import BinaryIO
 from .mac_input_listener import InputListener
 from .eleven_labs import ElevenLabsManager
 
@@ -35,7 +36,7 @@ def record_new_audio(duration_limit=5, fs=44100, channels=1):
                 break
             time.sleep(0.01)
 
-    if not frames:
+    if not len(frames):
         print("No audio frames recorded. Returning empty bytes.")
         return
 
@@ -43,6 +44,46 @@ def record_new_audio(duration_limit=5, fs=44100, channels=1):
     recording_int16 = (recording * 32767).astype(np.int16)
     print("Recording stopped.")
     return recording_int16.tobytes()
+
+
+def transform_audio_to_in_memory_wav_file(raw_audio: bytes, fs: int = 44100, channels: int = 1) -> BinaryIO:
+    """
+    Encapsulates raw audio bytes into an in-memory WAV file format.
+
+    This function takes raw audio data (typically a stream of bytes representing uncompressed audio samples)
+    and adds a WAV file header to it. This process creates a valid, playable audio file that is stored
+    entirely in memory, represented as an io.BytesIO object. This is useful for passing audio data
+    to APIs or other functions that require a file-like object rather than raw bytes.
+
+    The function assumes the raw audio data is a 16-bit PCM stream, which is a standard format for
+    uncompressed audio and common with libraries like `sounddevice`.
+
+    Args:
+        raw_audio (bytes): The raw audio data as a bytes object.
+        fs (int, optional): The sample rate of the audio data in Hertz. Defaults to 44100.
+        channels (int, optional): The number of audio channels. Defaults to 1.
+
+    Returns:
+        BinaryIO: An in-memory binary stream (BytesIO object) of the WAV file,
+                  with the pointer at the beginning of the file.
+
+    Raises:
+        wave.Error: If there is an issue writing the audio frames to the buffer.
+    """
+    try:
+        buffer = BytesIO()
+
+        with wave.open(buffer, "wb") as f:
+            f.setnchannels(channels)
+            f.setsampwidth(2)  # Corresponds to 16-bit audio
+            f.setframerate(fs)
+            f.writeframes(raw_audio)
+
+        buffer.seek(0)
+        return buffer
+    except wave.Error as err:
+        raise wave.Error(f"Failed to write WAV frames: {err}") from err
+
 
 
 def save_audio_to_file(audio_bytes: bytes, filename="recording.wav", fs = 44100, channels = 1):
@@ -83,11 +124,16 @@ def play_audio_bytes(audio_bytes: bytes, fs=44100):
     print("Playback finished.")
 
 
-if __name__ == "__main__":
+def transformation_audio_to_text():
     elevenlabs = ElevenLabsManager()
-    new_audio = record_new_audio(duration_limit=10)
+    # Hard limit 5mins
+    new_audio = record_new_audio(duration_limit=5 * 60)
 
-    if new_audio:
-        text = elevenlabs.convert_speech_to_text(audio=new_audio)
-        print('The Result of my text ====> ', text)
+    if not new_audio:
+        raise ValueError("Audio could not be recorded, try again later...")
+
+    audio_buffer = transform_audio_to_in_memory_wav_file(raw_audio=new_audio)
+    text = elevenlabs.convert_speech_to_text(audio=audio_buffer)
+
+    return text
 
