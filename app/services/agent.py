@@ -1,17 +1,18 @@
-from typing import Annotated, List, Optional
+import asyncio
 
+# from langgraph.graph.state import CompiledStateGraph
+from typing import Annotated, List, Optional
+from .notion import create_notion_page
 from typing_extensions import TypedDict
 from .recording_capabilities import transformation_audio_to_text
 from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
-
-# from langgraph.graph.state import CompiledStateGraph
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import AIMessage
 from json import loads, JSONDecodeError
 from .prompts import notion_assistant_prompt, notion_user_prompt
 from app.config import config
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 
 
 llm = ChatGoogleGenerativeAI(
@@ -34,6 +35,14 @@ class AgentState(TypedDict):
     # (in this case, it appends messages to the list, rather than overwriting them)
     messages: Annotated[list, add_messages]
     page_data: Optional[NotionPageData]
+    error: Optional[str]
+
+
+def add_system_details(state: AgentState):
+    """
+    Adds the system message to the state.
+    """
+    return {"messages": [notion_assistant_prompt]}
 
 
 def get_voice_recording(state: AgentState):
@@ -45,7 +54,7 @@ def get_voice_recording(state: AgentState):
     user_prompt = notion_user_prompt(user_input=transcribed_text)
 
     # Return the transcribed text as a HumanMessage
-    return {"messages": [notion_assistant_prompt, user_prompt]}
+    return {"messages": [user_prompt]}
 
 
 def call_llm(state: AgentState):
@@ -86,9 +95,23 @@ def parse_llm_response(state: AgentState):
         ai_payload = NotionPageData(**parsed_data)
 
         return {"page_data": ai_payload}
-    except (JSONDecodeError, IndexError) as err:
+    except (JSONDecodeError, IndexError, ValidationError) as err:
         print(f"Error parsing JSON from LLM: {err}")
         return {"error": "Invalid JSON response from LLM."}
+
+
+async def upload_new_page_into_notion(state: AgentState):
+    payload = state.get("page_data")
+
+    if not payload:
+        raise ValueError(
+            "🔥 Notion data was not able to get parsed to then being used."
+        )
+
+    await create_notion_page(
+        title=payload.title, paragraphs=payload.text, emoji=payload.icon
+    )
+    print("Notion Page Successfully Uploaded")
 
 
 def build_graph():
@@ -99,25 +122,29 @@ def build_graph():
     workflow = StateGraph(AgentState)
 
     # Add the nodes to the graph
+    workflow.add_node("add_system_details", add_system_details)
     workflow.add_node("get_voice_recording", get_voice_recording)
     workflow.add_node("call_llm", call_llm)
     workflow.add_node("parse_llm_response", parse_llm_response)
+    workflow.add_node("upload_new_page_into_notion", upload_new_page_into_notion)
 
     # Define Linear flow (edges)
-    workflow.add_edge(START, "get_voice_recording")
+    workflow.add_edge(START, "add_system_details")
+    workflow.add_edge("add_system_details", "get_voice_recording")
     workflow.add_edge("get_voice_recording", "call_llm")
     workflow.add_edge("call_llm", "parse_llm_response")
-    workflow.add_edge("parse_llm_response", END)
+    workflow.add_edge("parse_llm_response", "upload_new_page_into_notion")
+    workflow.add_edge("upload_new_page_into_notion", END)
 
     return workflow.compile()
 
 
-if __name__ == "__main__":
+async def main():
     app = build_graph()
-
-    # Invoke the graph with an initial state
     initial_state = {"messages": []}
-    final_state = app.invoke(initial_state)
 
-    print("--- Final State of the Graph ---")
-    print(final_state)
+    print("--- Starting async graph execution ---")
+    await app.ainvoke(initial_state)
+
+if __name__ == "__main__":
+    asyncio.run(main())
