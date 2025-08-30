@@ -19,4 +19,4 @@ dependencies = [
 ]
 
 [project.scripts]
-notast = "app.app:app"
+notast = "app.cli:main"

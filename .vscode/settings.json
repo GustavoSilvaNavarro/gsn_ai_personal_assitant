@@ -35,6 +35,7 @@
     "samplerate",
     "scrapy",
     "sdist",
+    "secho",
     "setuptools",
     "sounddevice",
     "Spyder",

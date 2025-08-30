@@ -14,9 +14,19 @@ def cli_record_code_idea():
 
 
 @app.command("create")
-def cli_create_user(username: str):
+def cli_create_user(
+    username: str = typer.Option(
+        ...,
+        "--username",
+        "-u",
+        help="The username for the new user."
+    )
+):
     print(f"Creating user: {username}")
 
 
-if __name__ == "__main__":
+def main():
     app()
+
+if __name__ == "__main__":
+    main()
