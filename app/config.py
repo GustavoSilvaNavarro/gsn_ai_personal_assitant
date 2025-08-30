@@ -1,4 +1,4 @@
-from pydantic import Field
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings
 
 
@@ -24,6 +24,10 @@ class Config(BaseSettings):
     # ELEVEN LABS
     ELEVEN_LABS_API_KEY: str = Field(description="API key for eleven labs", default="")
     ELEVEN_LABS_MODEL: str = Field(description="Elevenlabs for audio AI", default="")
+
+    # AI MODEL
+    AI_API_KEY: SecretStr = Field(description="AI Model API Key to access model", default="shh_secret")
+    AI_MODEL: str = Field(description="AI model", default="local_model")
 
     class Config:
         """Override env file, used in dev."""

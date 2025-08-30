@@ -7,6 +7,7 @@ from io import BytesIO
 from typing import BinaryIO
 from .mac_input_listener import InputListener
 from .eleven_labs import ElevenLabsManager
+import typer
 
 
 def record_new_audio(duration_limit=5, fs=44100, channels=1):
@@ -18,7 +19,7 @@ def record_new_audio(duration_limit=5, fs=44100, channels=1):
         fs (int): The sample rate of the audio data.
         channels (int): MacBook Pro Microphone is mono.
     """
-    print(f"Recording started. Press any key to stop. Hard limit: {duration_limit}s")
+    typer.secho(f"Recording started. Press any key to stop. Hard limit: {duration_limit}s", fg=typer.colors.BRIGHT_BLUE)
     listener = InputListener()
     listener.start()
     frames = []
@@ -32,17 +33,17 @@ def record_new_audio(duration_limit=5, fs=44100, channels=1):
         start_time = time.time()
         while not listener.is_key_pressed():
             if time.time() - start_time > duration_limit:
-                print("\nHard limit reached. Stopping recording.")
+                typer.secho("\nHard limit reached. Stopping recording.", fg=typer.colors.BRIGHT_YELLOW)
                 break
             time.sleep(0.01)
 
     if not len(frames):
-        print("No audio frames recorded. Returning empty bytes.")
+        typer.secho("No audio frames recorded. Returning empty bytes.", fg=typer.colors.BRIGHT_CYAN)
         return
 
     recording = np.concatenate(frames, axis=0)
     recording_int16 = (recording * 32767).astype(np.int16)
-    print("Recording stopped.")
+    typer.echo("Recording stopped.")
     return recording_int16.tobytes()
 
 
@@ -136,4 +137,3 @@ def transformation_audio_to_text():
     text = elevenlabs.convert_speech_to_text(audio=audio_buffer)
 
     return text
-
