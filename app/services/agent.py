@@ -1,4 +1,4 @@
-import asyncio
+import typer
 from typing import List, Optional
 from datetime import datetime, timezone
 from json import loads, JSONDecodeError
@@ -35,7 +35,7 @@ class AgentState(BaseModel):
     messages: List = Field(default_factory=list)   # holds Human/AI messages
     page_data: Optional[NotionPageData] = None
     error: Optional[str] = None
-    updated_at: datetime = Field(default_factory=datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 # ----------------------------
@@ -113,7 +113,7 @@ def parse_llm_response(state: AgentState) -> AgentState:
         ai_payload = NotionPageData(**parsed_data)
         return set_page_data(state, ai_payload)
     except (JSONDecodeError, IndexError, ValidationError) as err:
-        print(f"Error parsing JSON from LLM: {err}")
+        typer.secho(f"Error parsing JSON from LLM: {err}", fg=typer.colors.RED, err=True)
         return set_error(state, "Invalid JSON response from LLM.")
 
 
@@ -126,7 +126,7 @@ async def upload_new_page_into_notion(state: AgentState) -> AgentState:
         return set_error(state, "🔥 Notion data was not able to get parsed to then being used.")
 
     await create_notion_page(title=payload.title, paragraphs=payload.text, emoji=payload.icon)
-    print("Notion Page Successfully Uploaded")
+    typer.secho("Notion Page Successfully Uploaded")
     return state
 
 
@@ -160,15 +160,14 @@ def build_graph():
 # ----------------------------
 # Entrypoint
 # ----------------------------
-async def main():
+async def build_graph_and_create_new_code_idea():
     app = build_graph()
     initial_state = AgentState()
 
-    print("--- Starting async graph execution ---")
-    state = await app.ainvoke(initial_state)
-    print("===== FINAL STATE ======")
-    print(state)
+    typer.echo("--- Starting async graph execution ---")
+    final_state = await app.ainvoke(initial_state)
 
-
-if __name__ == "__main__":
-    asyncio.run(main())
+    if final_state.get('error'):
+        typer.secho(f"\n🛑 Process failed with error: {final_state.error}", fg=typer.colors.RED, err=True)
+    else:
+        typer.secho("\n🎉 Process completed successfully!", fg=typer.colors.GREEN)
