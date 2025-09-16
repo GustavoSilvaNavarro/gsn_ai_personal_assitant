@@ -24,6 +24,20 @@ def cli_create_user(
 ):
     print(f"Creating user: {username}")
 
+@app.command("mmm")
+def cli_get_mmm(
+    topic: str = typer.Option(
+        ...,
+        "--topic", "-t", help="Topic required to get the MMM"
+    )
+):
+    """
+    MMM => Monday Morning Mediation.
+
+    It creates a new MMM phrase, related to the topic you sent.
+    """
+    print(f"MMM => Buddha says.... => {topic}")
+
 
 def main():
     app()
