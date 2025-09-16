@@ -39,7 +39,7 @@ class AgentState(BaseModel):
 
 
 # ----------------------------
-# Updater Helpers
+# State Updater Helpers
 # ----------------------------
 def add_messages(state: AgentState, new_messages: List) -> AgentState:
     return state.model_copy(update={
