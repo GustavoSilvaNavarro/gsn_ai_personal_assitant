@@ -49,14 +49,6 @@ def mmm_user_prompt_topic(topic: str):
     - Please provide a quote and phrase related to the specific topic, do not give me a phrase or quote related to other topic or something random.
     - The idea is to search for positive quotes or phrases, no negativity.
     - Please always give me back quotes or phrases that have an author, if not say the author is Unknown Author.
-    - Provide me with a JSON like format as a response.
     - Give me back short quotes or phrases, please.
-
-    Sample of a JSON like response:
-
-    {{
-        "author": Author of the quote or phrase
-        "phrase": Here is where the phrase of quote related to the topic
-    }}
     """
 )

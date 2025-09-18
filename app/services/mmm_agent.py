@@ -1,14 +1,17 @@
-from typing import Annotated
+from typing import Annotated, Optional
 from typing_extensions import TypedDict
 from langgraph.graph.message import add_messages
+from langchain_core.messages import AIMessage
 from langgraph.graph import StateGraph, START, END
-from .agent import llm
+from .llm import model
+from app.schemas import QuoteMMM
 from .prompts import mmm_system_prompt, mmm_user_prompt_topic
 
 
 class MMMAgentState(TypedDict):
     messages: Annotated[list, add_messages]  # holds Human/AI messages
     topic: str
+    mmm: Optional[dict]
 
 
 def add_context_to_llm(state: MMMAgentState):
@@ -21,12 +24,14 @@ def get_topic_from_user(state: MMMAgentState):
 
 
 def call_llm(state: MMMAgentState):
-    return {"messages": [llm.invoke(state["messages"])]}
-
-
-def parse_llm_response(state: MMMAgentState):
-    msgs = state["messages"]
-    print(msgs[-1])
+    response: QuoteMMM = model.mmm_structure_llm.invoke(state["messages"])
+    ai_response = AIMessage(
+        content=f"Author: {response.author} | Phrase: {response.phrase}"
+    )
+    return {
+        "messages": [ai_response],  # keep it in messages if you want history
+        "mmm": response.model_dump(),
+    }
 
 
 def build_mmm_graph():
@@ -38,13 +43,11 @@ def build_mmm_graph():
     workflow.add_node("add_context_to_llm", add_context_to_llm)
     workflow.add_node("get_topic_from_user", get_topic_from_user)
     workflow.add_node("call_llm", call_llm)
-    workflow.add_node("parse_llm_response", parse_llm_response)
 
     workflow.add_edge(START, "add_context_to_llm")
     workflow.add_edge("add_context_to_llm", "get_topic_from_user")
     workflow.add_edge("get_topic_from_user", "call_llm")
-    workflow.add_edge("call_llm", "parse_llm_response")
-    workflow.add_edge("parse_llm_response", END)
+    workflow.add_edge("call_llm", END)
 
     return workflow.compile()
 
@@ -54,4 +57,4 @@ async def run_mmm_graph_agent(topic: str):
     initial_state = MMMAgentState(messages=[], topic=topic)
 
     final_state = await app.ainvoke(initial_state)
-    print(final_state)
+    print(final_state["mmm"])
