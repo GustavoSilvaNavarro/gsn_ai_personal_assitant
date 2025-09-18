@@ -60,7 +60,8 @@ async def run_mmm_graph_agent(topic: str):
     try:
         final_state = await app.ainvoke(initial_state)
         typer.secho(
-            f"🎊 Your MMM => {final_state['mmm']['phrase']} | Author: {final_state['mmm']['author']}", fg=typer.colors.GREEN
+            f"🎊 Your MMM => {final_state['mmm']['phrase']} | Author: {final_state['mmm']['author']}",
+            fg=typer.colors.GREEN,
         )
     except Exception as err:
-        typer.secho(f"❌ An error occurred: {err}", fg=typer.colors.RED)
+        typer.secho(f"❌ An error occurred: {err}", fg=typer.colors.RED, err=True)

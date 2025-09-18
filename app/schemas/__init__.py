@@ -1,3 +1,3 @@
-from .llm_dtos import QuoteMMM
+from .llm_dtos import QuoteMMM, NotionResponse,NotionPageData
 
-__all__ = ["QuoteMMM"]
+__all__ = ["QuoteMMM", "NotionResponse", "NotionPageData"]
