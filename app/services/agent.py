@@ -8,18 +8,9 @@ from pydantic import BaseModel, Field, ValidationError
 from .notion import create_notion_page
 from .recording_capabilities import transformation_audio_to_text
 from langgraph.graph import StateGraph, START, END
-from langchain_google_genai import ChatGoogleGenerativeAI
+from .llm import model
 from langchain_core.messages import AIMessage
 from .prompts import notion_assistant_prompt, notion_user_prompt
-from app.config import config
-
-
-# LLM initialization
-llm = ChatGoogleGenerativeAI(
-    google_api_key=config.AI_API_KEY,
-    model=config.AI_MODEL,
-    temperature=0,
-)
 
 
 # ----------------------------
@@ -86,7 +77,7 @@ def call_llm(state: AgentState) -> AgentState:
     """
     Invokes the LLM with the current state's messages and returns the LLM's response.
     """
-    response = llm.invoke(state.messages)
+    response = model.llm.invoke(state.messages)
     return add_messages(state, [response])
 
 
