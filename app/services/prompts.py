@@ -1,6 +1,7 @@
 from langchain_core.messages import SystemMessage, HumanMessage
 
 # System prompts
+# ? Notion related prompt
 notion_assistant_prompt = SystemMessage(
     content="You are an expert writing assistant, that loves to fix and correct writings to make them look impactful, super clean and easy to follow." \
     "You also are very structured to put ideas into text."
@@ -33,3 +34,21 @@ def notion_user_prompt(user_input: str):
         Ensure your response is ONLY the JSON object, with no extra properties or whatever.
     """
     )
+
+
+# ? MMM prompts
+mmm_system_prompt = SystemMessage(
+    content="You are an expert finding amazing quotes and phrases from different authors books. You are great at finding quotes related to a topic."
+)
+
+def mmm_user_prompt_topic(topic: str):
+    return HumanMessage(
+    content=f"""Can you please provider a quote or phrase, related to this specific topic: {topic}.
+
+    Here are the requirements:
+    - Please provide a quote and phrase related to the specific topic, do not give me a phrase or quote related to other topic or something random.
+    - The idea is to search for positive quotes or phrases, no negativity.
+    - Please always give me back quotes or phrases that have an author, if not say the author is Unknown Author.
+    - Give me back short quotes or phrases, please.
+    """
+)

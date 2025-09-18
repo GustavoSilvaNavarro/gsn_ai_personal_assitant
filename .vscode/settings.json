@@ -4,6 +4,7 @@
     "celerybeat",
     "dmypy",
     "dotenv",
+    "dtos",
     "elevenlabs",
     "frombuffer",
     "genai",
