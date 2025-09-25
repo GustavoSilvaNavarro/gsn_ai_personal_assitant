@@ -13,6 +13,7 @@ from .prompts import mmm_system_prompt, mmm_user_prompt_topic
 class MMMAgentState(TypedDict):
     messages: Annotated[list, add_messages]  # holds Human/AI messages
     mmm: Optional[dict]
+    user_extra_data: Optional[str]
     topic: str
     rejected_quotes: list[str]
     accepted: bool
@@ -39,11 +40,10 @@ def call_llm(state: MMMAgentState):
     last_msg = state["messages"][-1]
 
     if rejection_context:
-        prompt = HumanMessage(content=f"{rejection_context}\n\n{last_msg.content}")
+        user_extra_data = f"\n\n{state['user_extra_data']}" if state.get("user_extra_data") else ""
+        prompt = HumanMessage(content=f"{rejection_context}\n\n{last_msg.content}{user_extra_data}")
     else:
         prompt = HumanMessage(content=last_msg.content)
-
-    print(prompt.content)
 
     # Run the LLM
     response: QuoteMMM = model.mmm_structure_llm.invoke(
@@ -62,11 +62,13 @@ def get_user_feedback(state: MMMAgentState):
         fg=typer.colors.GREEN,
     )
 
-    answer = typer.prompt("Do you like this one? (y/n)").strip().lower()
+    while True:
+        answer = typer.prompt("Do you like this one? (y/n)").strip().lower()
 
-    if answer not in ["y", "n"]:
-        typer.secho("❌ Please answer with 'y' or 'n' only.", fg=typer.colors.RED)
-        raise typer.Exit(code=1)  # hard exit on invalid input
+        if answer not in ["y", "n"]:
+            typer.secho("❌ Please answer with 'y' or 'n' only.", fg=typer.colors.RED)
+            continue
+        break
 
     if answer == "y":
         typer.secho("✅ Awesome! We'll keep this one.", fg=typer.colors.CYAN)
@@ -74,8 +76,17 @@ def get_user_feedback(state: MMMAgentState):
         return {"accepted": True, "messages": [ai_response]}
     else:
         typer.secho("🔄 Okay, generating another one...\n", fg=typer.colors.YELLOW)
+        user_extra_input = (
+            typer.prompt(
+                "Please provider a bit more information or suggestions?", default="", show_default=False
+            )
+            .strip()
+            .lower()
+        )
+
         return {
             "accepted": False,
+            "user_extra_data": user_extra_input,
             "rejected_quotes": state["rejected_quotes"] + [phrase],
         }
 
